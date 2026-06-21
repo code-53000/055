@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:16
     restart: unless-stopped
     environment:
       POSTGRES_DB: adproject
@@ -12,7 +12,7 @@ services:
       test: ["CMD-SHELL", "pg_isready -U postgres -d adproject"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 15
 
   backend:
     build: ./backend
@@ -28,7 +28,7 @@ services:
         condition: service_healthy
     volumes:
       - uploads:/app/uploads
-    command: sh -c "npx prisma migrate deploy && npx ts-node prisma/seed.ts && node dist/server.js"
+    command: sh -c "npx prisma db push --skip-generate && npx ts-node prisma/seed.ts && node dist/server.js"
 
   frontend:
     build: ./frontend

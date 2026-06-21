@@ -10,6 +10,7 @@ const createProjectSchema = z.object({
   description: z.string().optional(),
   code: z.string().min(1),
   clientId: z.number().int().positive(),
+  managerId: z.number().int().positive(),
   milestones: z
     .array(
       z.object({
