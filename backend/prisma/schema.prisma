@@ -1,0 +1,125 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ACCOUNT_MANAGER
+  DESIGNER
+  CLIENT
+}
+
+enum MilestoneStatus {
+  PENDING
+  IN_PROGRESS
+  REVIEW
+  APPROVED
+  COMPLETED
+}
+
+enum AssetStatus {
+  DRAFT
+  REVIEW
+  APPROVED
+  REJECTED
+  FINAL
+}
+
+enum FeedbackStatus {
+  OPEN
+  RESOLVED
+  CLOSED
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  name      String
+  role      UserRole
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  projectsAsManager Project[] @relation("ProjectManager")
+  projectsAsClient  Project[] @relation("ProjectClient")
+  uploadedAssets    Asset[]   @relation("AssetUploader")
+  feedbacks         Feedback[]
+}
+
+model Project {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  code        String   @unique
+  managerId   Int
+  clientId    Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  manager     User        @relation("ProjectManager", fields: [managerId], references: [id])
+  client      User        @relation("ProjectClient", fields: [clientId], references: [id])
+  milestones  Milestone[]
+  assets      Asset[]
+  feedbacks   Feedback[]
+}
+
+model Milestone {
+  id             Int              @id @default(autoincrement())
+  projectId      Int
+  name           String
+  description    String?
+  orderIndex     Int
+  status         MilestoneStatus  @default(PENDING)
+  dueDate        DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  project        Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assets         Asset[]
+  feedbacks      Feedback[]
+}
+
+model Asset {
+  id           Int         @id @default(autoincrement())
+  projectId    Int
+  milestoneId  Int?
+  uploaderId   Int
+  version      Int
+  name         String
+  fileName     String
+  filePath     String
+  mimeType     String
+  size         Int
+  changeLog    String?
+  status       AssetStatus @default(DRAFT)
+  isFinal      Boolean     @default(false)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  project      Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  milestone    Milestone?  @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+  uploader     User        @relation("AssetUploader", fields: [uploaderId], references: [id])
+  feedbacks    Feedback[]
+}
+
+model Feedback {
+  id          Int            @id @default(autoincrement())
+  projectId   Int
+  milestoneId Int?
+  assetId     Int?
+  authorId    Int
+  content     String
+  status      FeedbackStatus @default(OPEN)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  project     Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  milestone   Milestone?     @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+  asset       Asset?         @relation(fields: [assetId], references: [id], onDelete: SetNull)
+  author      User           @relation(fields: [authorId], references: [id])
+}
